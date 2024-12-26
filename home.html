@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Group Trip Expense Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #1a73e8;
+            margin-bottom: 20px;
+        }
+
+        .expense-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .expense-form {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        input, select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #1557b0;
+        }
+
+        .payment-alert {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .expense-list {
+            margin-top: 30px;
+        }
+
+        .expense-item {
+            display: grid;
+            grid-template-columns: 1fr auto auto auto;
+            gap: 15px;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            align-items: center;
+        }
+
+        .expense-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .expense-note {
+            font-weight: 500;
+        }
+
+        .expense-meta {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .expense-amount {
+            font-weight: bold;
+            color: #1a73e8;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            padding: 8px 12px;
+        }
+
+        .delete-btn:hover {
+            background: #c82333;
+        }
+
+        .total-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: #e3f2fd;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .category-tag {
+            background: #e1f5fe;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #0288d1;
+        }
+
+        #upiPaymentForm {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+
+        .upi-input {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .payment-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .cancel-btn {
+            background: #dc3545;
+        }
+
+
+
+
+
+
+
+        .split-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .friend-list {
+            margin: 10px 0;
+        }
+
+        .friend-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            border: 1px solid #ddd;
+            margin: 5px 0;
+            border-radius: 5px;
+            background: white;
+        }
+
+        .payment-status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-paid {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .friend-details {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .split-type-selector {
+            margin-bottom: 15px;
+        }
+
+        .friend-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .friend-input-group input {
+            flex: 1;
+        }
+
+
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Group Trip Expense Tracker</h1>
+        
+        <div class="expense-form">
+            <div class="form-group">
+                <label for="amount">Amount (₹)</label>
+                <input type="number" id="amount" placeholder="Enter amount" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="note">Note</label>
+                <input type="text" id="note" placeholder="What's this for?" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="paidBy">Paid By</label>
+                <input type="text" id="paidBy" placeholder="Who paid?" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="category">Category</label>
+                <select id="category">
+                    <option value="food">Food</option>
+                    <option value="transport">Transport</option>
+                    <option value="accommodation">Accommodation</option>
+                    <option value="activities">Activities</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="splitSection" class="split-section" style="display: none;">
+            <h3>Split Payment</h3>
+            
+            <div class="split-type-selector">
+                <label>Split Type:</label>
+                <select id="splitType" onchange="updateSplitCalculation()">
+                    <option value="equal">Split Equally</option>
+                    <option value="custom">Custom Split</option>
+                </select>
+            </div>
+    
+            <div class="friend-input-group">
+                <input type="text" id="friendName" placeholder="Friend's name">
+                <input type="tel" id="friendPhone" placeholder="Friend's phone number">
+                <button onclick="addFriend()">Add Friend</button>
+            </div>
+    
+            <div id="friendList" class="friend-list">
+                <!-- Friends will be added here dynamically -->
+            </div>
+    
+            <div class="split-summary">
+                <p>Total Amount: ₹<span id="splitTotal">0</span></p>
+                <p>Split Amount per person: ₹<span id="splitAmount">0</span></p>
+            </div>
+        </div>
+
+        <button onclick="initiatePayment()">Add Expense</button>
+        
+        <div id="paymentAlert" class="payment-alert">
+            Processing payment... Please wait.
+        </div>
+
+        <div class="expense-list" id="expenseList">
+            <!-- Expenses will be added here dynamically -->
+        </div>
+
+        <div class="total-section">
+            <span>Total Expenses:</span>
+            <span id="totalAmount">₹0.00</span>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+    <div id="upiPaymentForm">
+        <h2 style="margin-bottom: 15px;">Payment Options</h2>
+        <div class="form-group">
+            <label for="upiId">Pay to UPI ID</label>
+            <input type="text" id="upiId" class="upi-input" placeholder="example@upi" required>
+        </div>
+        <div class="payment-buttons" style="display: flex; flex-direction: column; gap: 10px;">
+            <button onclick="openGooglePay()">
+                Pay with Google Pay
+            </button>
+            <button onclick="openPhonePe()">
+                Pay with PhonePe
+            </button>
+            <button onclick="openPaytm()">
+                Pay with Paytm
+            </button>
+            <button onclick="openCustomUPI()">
+                Pay with Other UPI App
+            </button>
+            <button class="cancel-btn" onclick="cancelPayment()">Cancel</button>
+        </div>
+    </div>
+    <script>
+        let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+        let pendingExpense = null;
+
+        function initiatePayment() {
+            const amount = document.getElementById('amount').value;
+            const note = document.getElementById('note').value;
+            const paidBy = document.getElementById('paidBy').value;
+            const category = document.getElementById('category').value;
+
+            if (!amount || !note || !paidBy) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            pendingExpense = {
+                amount: parseFloat(amount),
+                note,
+                paidBy,
+                category
+            };
+
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('upiPaymentForm').style.display = 'block';
+        }
+
+        function createUPIUrl(app) {
+            const upiId = document.getElementById('upiId').value;
+            if (!upiId) {
+                alert('Please enter UPI ID');
+                return null;
+            }
+
+            // Encode the note for URL safety
+            const encodedNote = encodeURIComponent(pendingExpense.note);
+            
+            // Basic UPI URL structure
+            let upiUrl = `upi://pay?pa=${upiId}`
+                + `&pn=ExpenseTracker`
+                + `&tn=${encodedNote}`
+                + `&am=${pendingExpense.amount}`
+                + `&cu=INR`;
+
+            // Add app-specific parameters
+            switch(app) {
+                case 'gpay':
+                    upiUrl += '&mode=04&purpose=00';
+                    break;
+                case 'phonepe':
+                    upiUrl += '&mode=04&purpose=00&mc=0000';
+                    break;
+                case 'paytm':
+                    upiUrl += '&mode=02';
+                    break;
+            }
+
+            return upiUrl;
+        }
+
+        function openGooglePay() {
+            const upiUrl = createUPIUrl('gpay');
+            if (upiUrl) {
+                // Try to open Google Pay directly
+                window.location.href = `tez://upi/pay?pa=${document.getElementById('upiId').value}&pn=ExpenseTracker&am=${pendingExpense.amount}&cu=INR`;
+                handlePaymentInitiated();
+            }
+        }
+
+        function openPhonePe() {
+            const upiUrl = createUPIUrl('phonepe');
+            if (upiUrl) {
+                // Try to open PhonePe directly
+                window.location.href = `phonepe://pay?pa=${document.getElementById('upiId').value}&pn=ExpenseTracker&am=${pendingExpense.amount}&cu=INR`;
+                handlePaymentInitiated();
+            }
+        }
+
+        function openPaytm() {
+            const upiUrl = createUPIUrl('paytm');
+            if (upiUrl) {
+                // Try to open Paytm directly
+                window.location.href = `paytmmp://pay?pa=${document.getElementById('upiId').value}&pn=ExpenseTracker&am=${pendingExpense.amount}&cu=INR`;
+                handlePaymentInitiated();
+            }
+        }
+
+        function openCustomUPI() {
+            const upiUrl = createUPIUrl('custom');
+            if (upiUrl) {
+                // For other UPI apps, use the generic UPI URL
+                window.location.href = upiUrl;
+                handlePaymentInitiated();
+            }
+        }
+
+        function handlePaymentInitiated() {
+            // Hide the payment form
+            document.getElementById('upiPaymentForm').style.display = 'none';
+            document.getElementById('paymentAlert').style.display = 'block';
+
+            // Add expense after payment initiation
+            setTimeout(() => {
+                const expense = {
+                    ...pendingExpense,
+                    id: Date.now(),
+                    date: new Date().toLocaleDateString(),
+                    status: 'Paid'
+                };
+
+                expenses.unshift(expense);
+                localStorage.setItem('expenses', JSON.stringify(expenses));
+                
+                updateExpenseList();
+                clearForm();
+                document.getElementById('paymentAlert').style.display = 'none';
+                document.getElementById('overlay').style.display = 'none';
+                pendingExpense = null;
+            }, 3000);
+        }
+
+        function deleteExpense(id) {
+            expenses = expenses.filter(expense => expense.id !== id);
+            localStorage.setItem('expenses', JSON.stringify(expenses));
+            updateExpenseList();
+        }
+
+        function updateExpenseList() {
+            const expenseList = document.getElementById('expenseList');
+            expenseList.innerHTML = '';
+
+            expenses.forEach(expense => {
+                const expenseElement = document.createElement('div');
+                expenseElement.className = 'expense-item';
+                expenseElement.innerHTML = `
+                    <div class="expense-details">
+                        <span class="expense-note">${expense.note}</span>
+                        <span class="expense-meta">Paid by ${expense.paidBy} on ${expense.date}</span>
+                    </div>
+                    <span class="category-tag">${expense.category}</span>
+                    <span class="expense-amount">₹${expense.amount.toFixed(2)}</span>
+                    <button class="delete-btn" onclick="deleteExpense(${expense.id})">Delete</button>
+                `;
+                expenseList.appendChild(expenseElement);
+            });
+
+            updateTotal();
+        }
+
+        function updateTotal() {
+            const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+            document.getElementById('totalAmount').textContent = `₹${total.toFixed(2)}`;
+        }
+
+        function clearForm() {
+            document.getElementById('amount').value = '';
+            document.getElementById('note').value = '';
+            document.getElementById('paidBy').value = '';
+            document.getElementById('category').value = 'food';
+            document.getElementById('upiId').value = '';
+        }
+
+        // Initialize expense list on page load
+        updateExpenseList();
+
+
+
+
+        let friends = [];
+        let currentExpenseId = null;
+
+        function addFriend() {
+            const name = document.getElementById('friendName').value;
+            const phone = document.getElementById('friendPhone').value;
+
+            if (!name || !phone) {
+                alert('Please enter both name and phone number');
+                return;
+            }
+
+            const friend = {
+                id: Date.now(),
+                name,
+                phone,
+                status: 'pending',
+                amount: 0
+            };
+
+            friends.push(friend);
+            updateSplitCalculation();
+            updateFriendList();
+            clearFriendInputs();
+        }
+
+        function clearFriendInputs() {
+            document.getElementById('friendName').value = '';
+            document.getElementById('friendPhone').value = '';
+        }
+
+        function updateSplitCalculation() {
+            if (!pendingExpense || !friends.length) return;
+
+            const splitType = document.getElementById('splitType').value;
+            const totalAmount = pendingExpense.amount;
+
+            if (splitType === 'equal') {
+                const splitAmount = totalAmount / (friends.length + 1); // +1 for you
+                friends.forEach(friend => {
+                    friend.amount = splitAmount;
+                });
+            }
+            // Custom split can be handled here if needed
+
+            document.getElementById('splitTotal').textContent = totalAmount.toFixed(2);
+            document.getElementById('splitAmount').textContent = (totalAmount / (friends.length + 1)).toFixed(2);
+            updateFriendList();
+        }
+
+        function updateFriendList() {
+            const friendList = document.getElementById('friendList');
+            friendList.innerHTML = '';
+
+            friends.forEach(friend => {
+                const friendElement = document.createElement('div');
+                friendElement.className = 'friend-item';
+                friendElement.innerHTML = `
+                    <div class="friend-details">
+                        <span>${friend.name}</span>
+                        <span>(${friend.phone})</span>
+                        <span class="payment-status status-${friend.status}">
+                            ${friend.status.charAt(0).toUpperCase() + friend.status.slice(1)}
+                        </span>
+                    </div>
+                    <div>
+                        <span>₹${friend.amount.toFixed(2)}</span>
+                        ${friend.status === 'pending' ? `
+                            <button onclick="requestPayment('${friend.id}')">Request</button>
+                            <button onclick="markAsPaid('${friend.id}')">Mark Paid</button>
+                        ` : ''}
+                    </div>
+                `;
+                friendList.appendChild(friendElement);
+            });
+        }
+
+        function requestPayment(friendId) {
+            const friend = friends.find(f => f.id.toString() === friendId);
+            if (!friend) return;
+
+            // Create payment request message
+            const message = `Please pay ₹${friend.amount.toFixed(2)} for ${pendingExpense.note}`;
+            
+            // Open WhatsApp with pre-filled message
+            const whatsappUrl = `https://wa.me/91${friend.phone}?text=${encodeURIComponent(message)}`;
+            window.open(whatsappUrl, '_blank');
+        }
+
+        function markAsPaid(friendId) {
+            const friend = friends.find(f => f.id.toString() === friendId);
+            if (!friend) return;
+
+            friend.status = 'paid';
+            updateFriendList();
+            
+            // Update expense in storage
+            if (currentExpenseId) {
+                const expense = expenses.find(e => e.id === currentExpenseId);
+                if (expense) {
+                    expense.splits = friends;
+                    localStorage.setItem('expenses', JSON.stringify(expenses));
+                }
+            }
+        }
+
+        // Modify initiatePayment to show split section
+        function initiatePayment() {
+            const amount = document.getElementById('amount').value;
+            const note = document.getElementById('note').value;
+            const paidBy = document.getElementById('paidBy').value;
+            const category = document.getElementById('category').value;
+
+            if (!amount || !note || !paidBy) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            pendingExpense = {
+                amount: parseFloat(amount),
+                note,
+                paidBy,
+                category
+            };
+
+            // Show split section first
+            document.getElementById('splitSection').style.display = 'block';
+            updateSplitCalculation();
+        }
+
+        // Modify handlePaymentInitiated to include split information
+        function handlePaymentInitiated() {
+            document.getElementById('upiPaymentForm').style.display = 'none';
+            document.getElementById('paymentAlert').style.display = 'block';
+
+            setTimeout(() => {
+                const expense = {
+                    ...pendingExpense,
+                    id: Date.now(),
+                    date: new Date().toLocaleDateString(),
+                    status: 'Paid',
+                    splits: friends // Save split information
+                };
+
+                currentExpenseId = expense.id;
+                expenses.unshift(expense);
+                localStorage.setItem('expenses', JSON.stringify(expenses));
+                
+                updateExpenseList();
+                clearForm();
+                document.getElementById('paymentAlert').style.display = 'none';
+                document.getElementById('overlay').style.display = 'none';
+                document.getElementById('splitSection').style.display = 'none';
+                pendingExpense = null;
+                friends = [];
+            }, 3000);
+        }
+
+        // Modify updateExpenseList to show split details
+        function updateExpenseList() {
+            const expenseList = document.getElementById('expenseList');
+            expenseList.innerHTML = '';
+
+            expenses.forEach(expense => {
+                const expenseElement = document.createElement('div');
+                expenseElement.className = 'expense-item';
+                
+                let splitStatus = '';
+                if (expense.splits && expense.splits.length > 0) {
+                    const paidCount = expense.splits.filter(f => f.status === 'paid').length;
+                    splitStatus = `<div class="split-status">
+                        Split: ${paidCount}/${expense.splits.length} paid
+                    </div>`;
+                }
+
+                expenseElement.innerHTML = `
+                    <div class="expense-details">
+                        <span class="expense-note">${expense.note}</span>
+                        <span class="expense-meta">Paid by ${expense.paidBy} on ${expense.date}</span>
+                        ${splitStatus}
+                    </div>
+                    <span class="category-tag">${expense.category}</span>
+                    <span class="expense-amount">₹${expense.amount.toFixed(2)}</span>
+                    <button class="delete-btn" onclick="deleteExpense(${expense.id})">Delete</button>
+                `;
+                expenseList.appendChild(expenseElement);
+            });
+
+            updateTotal();
+        }
+
+
+        
+    </script>
+</body>
+</html>
