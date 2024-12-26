@@ -185,12 +185,6 @@
             background: #dc3545;
         }
 
-
-
-
-
-
-
         .split-section {
             background: #f8f9fa;
             padding: 15px;
@@ -249,8 +243,17 @@
             flex: 1;
         }
 
+        .split-details-btn {
+            background-color: #17a2b8;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
 
-
+        .split-details-btn:hover {
+            background-color: #138496;
+        }
     </style>
 </head>
 <body>
@@ -285,27 +288,28 @@
             </div>
         </div>
 
-        <div id="splitSection" class="split-section" style="display: none;">
+        <div id="splitSection" class="split-section">
             <h3>Split Payment</h3>
             
             <div class="split-type-selector">
                 <label>Split Type:</label>
                 <select id="splitType" onchange="updateSplitCalculation()">
                     <option value="equal">Split Equally</option>
+                    <option value="individual">Individual Split</option>
                     <option value="custom">Custom Split</option>
                 </select>
             </div>
-    
+
             <div class="friend-input-group">
                 <input type="text" id="friendName" placeholder="Friend's name">
                 <input type="tel" id="friendPhone" placeholder="Friend's phone number">
                 <button onclick="addFriend()">Add Friend</button>
             </div>
-    
+
             <div id="friendList" class="friend-list">
                 <!-- Friends will be added here dynamically -->
             </div>
-    
+
             <div class="split-summary">
                 <p>Total Amount: ₹<span id="splitTotal">0</span></p>
                 <p>Split Amount per person: ₹<span id="splitAmount">0</span></p>
@@ -335,24 +339,18 @@
             <label for="upiId">Pay to UPI ID</label>
             <input type="text" id="upiId" class="upi-input" placeholder="example@upi" required>
         </div>
-        <div class="payment-buttons" style="display: flex; flex-direction: column; gap: 10px;">
-            <button onclick="openGooglePay()">
-                Pay with Google Pay
-            </button>
-            <button onclick="openPhonePe()">
-                Pay with PhonePe
-            </button>
-            <button onclick="openPaytm()">
-                Pay with Paytm
-            </button>
-            <button onclick="openCustomUPI()">
-                Pay with Other UPI App
-            </button>
+        <div class="payment-buttons">
+            <button onclick="openGooglePay()">Pay with Google Pay</button>
+            <button onclick="openPhonePe()">Pay with PhonePe</button>
+            <button onclick="openPaytm()">Pay with Paytm</button>
+            <button onclick="openCustomUPI()">Pay with Other UPI App</button>
             <button class="cancel-btn" onclick="cancelPayment()">Cancel</button>
         </div>
     </div>
+
     <script>
         let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+        let friends = JSON.parse(localStorage.getItem('friends')) || [];
         let pendingExpense = null;
 
         function initiatePayment() {
@@ -370,88 +368,18 @@
                 amount: parseFloat(amount),
                 note,
                 paidBy,
-                category
+                category,
+                splits: [...friends]
             };
 
             document.getElementById('overlay').style.display = 'block';
             document.getElementById('upiPaymentForm').style.display = 'block';
         }
 
-        function createUPIUrl(app) {
-            const upiId = document.getElementById('upiId').value;
-            if (!upiId) {
-                alert('Please enter UPI ID');
-                return null;
-            }
-
-            // Encode the note for URL safety
-            const encodedNote = encodeURIComponent(pendingExpense.note);
-            
-            // Basic UPI URL structure
-            let upiUrl = `upi://pay?pa=${upiId}`
-                + `&pn=ExpenseTracker`
-                + `&tn=${encodedNote}`
-                + `&am=${pendingExpense.amount}`
-                + `&cu=INR`;
-
-            // Add app-specific parameters
-            switch(app) {
-                case 'gpay':
-                    upiUrl += '&mode=04&purpose=00';
-                    break;
-                case 'phonepe':
-                    upiUrl += '&mode=04&purpose=00&mc=0000';
-                    break;
-                case 'paytm':
-                    upiUrl += '&mode=02';
-                    break;
-            }
-
-            return upiUrl;
-        }
-
-        function openGooglePay() {
-            const upiUrl = createUPIUrl('gpay');
-            if (upiUrl) {
-                // Try to open Google Pay directly
-                window.location.href = `tez://upi/pay?pa=${document.getElementById('upiId').value}&pn=ExpenseTracker&am=${pendingExpense.amount}&cu=INR`;
-                handlePaymentInitiated();
-            }
-        }
-
-        function openPhonePe() {
-            const upiUrl = createUPIUrl('phonepe');
-            if (upiUrl) {
-                // Try to open PhonePe directly
-                window.location.href = `phonepe://pay?pa=${document.getElementById('upiId').value}&pn=ExpenseTracker&am=${pendingExpense.amount}&cu=INR`;
-                handlePaymentInitiated();
-            }
-        }
-
-        function openPaytm() {
-            const upiUrl = createUPIUrl('paytm');
-            if (upiUrl) {
-                // Try to open Paytm directly
-                window.location.href = `paytmmp://pay?pa=${document.getElementById('upiId').value}&pn=ExpenseTracker&am=${pendingExpense.amount}&cu=INR`;
-                handlePaymentInitiated();
-            }
-        }
-
-        function openCustomUPI() {
-            const upiUrl = createUPIUrl('custom');
-            if (upiUrl) {
-                // For other UPI apps, use the generic UPI URL
-                window.location.href = upiUrl;
-                handlePaymentInitiated();
-            }
-        }
-
         function handlePaymentInitiated() {
-            // Hide the payment form
             document.getElementById('upiPaymentForm').style.display = 'none';
             document.getElementById('paymentAlert').style.display = 'block';
 
-            // Add expense after payment initiation
             setTimeout(() => {
                 const expense = {
                     ...pendingExpense,
@@ -471,55 +399,18 @@
             }, 3000);
         }
 
-        function deleteExpense(id) {
-            expenses = expenses.filter(expense => expense.id !== id);
-            localStorage.setItem('expenses', JSON.stringify(expenses));
-            updateExpenseList();
+        function updateSplitCalculation() {
+            const splitType = document.getElementById('splitType').value;
+            const totalAmount = pendingExpense.amount;
+
+            if (splitType === 'equal') {
+                const splitAmount = totalAmount / (friends.length + 1); // Include the payer
+                friends.forEach(friend => friend.amount = splitAmount);
+            }
+            document.getElementById('splitTotal').textContent = totalAmount.toFixed(2);
+            document.getElementById('splitAmount').textContent = (totalAmount / (friends.length + 1)).toFixed(2);
+            updateFriendList();
         }
-
-        function updateExpenseList() {
-            const expenseList = document.getElementById('expenseList');
-            expenseList.innerHTML = '';
-
-            expenses.forEach(expense => {
-                const expenseElement = document.createElement('div');
-                expenseElement.className = 'expense-item';
-                expenseElement.innerHTML = `
-                    <div class="expense-details">
-                        <span class="expense-note">${expense.note}</span>
-                        <span class="expense-meta">Paid by ${expense.paidBy} on ${expense.date}</span>
-                    </div>
-                    <span class="category-tag">${expense.category}</span>
-                    <span class="expense-amount">₹${expense.amount.toFixed(2)}</span>
-                    <button class="delete-btn" onclick="deleteExpense(${expense.id})">Delete</button>
-                `;
-                expenseList.appendChild(expenseElement);
-            });
-
-            updateTotal();
-        }
-
-        function updateTotal() {
-            const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-            document.getElementById('totalAmount').textContent = `₹${total.toFixed(2)}`;
-        }
-
-        function clearForm() {
-            document.getElementById('amount').value = '';
-            document.getElementById('note').value = '';
-            document.getElementById('paidBy').value = '';
-            document.getElementById('category').value = 'food';
-            document.getElementById('upiId').value = '';
-        }
-
-        // Initialize expense list on page load
-        updateExpenseList();
-
-
-
-
-        let friends = [];
-        let currentExpenseId = null;
 
         function addFriend() {
             const name = document.getElementById('friendName').value;
@@ -534,38 +425,14 @@
                 id: Date.now(),
                 name,
                 phone,
-                status: 'pending',
                 amount: 0
             };
 
             friends.push(friend);
-            updateSplitCalculation();
+            localStorage.setItem('friends', JSON.stringify(friends));
             updateFriendList();
-            clearFriendInputs();
-        }
-
-        function clearFriendInputs() {
             document.getElementById('friendName').value = '';
             document.getElementById('friendPhone').value = '';
-        }
-
-        function updateSplitCalculation() {
-            if (!pendingExpense || !friends.length) return;
-
-            const splitType = document.getElementById('splitType').value;
-            const totalAmount = pendingExpense.amount;
-
-            if (splitType === 'equal') {
-                const splitAmount = totalAmount / (friends.length + 1); // +1 for you
-                friends.forEach(friend => {
-                    friend.amount = splitAmount;
-                });
-            }
-            // Custom split can be handled here if needed
-
-            document.getElementById('splitTotal').textContent = totalAmount.toFixed(2);
-            document.getElementById('splitAmount').textContent = (totalAmount / (friends.length + 1)).toFixed(2);
-            updateFriendList();
         }
 
         function updateFriendList() {
@@ -573,144 +440,62 @@
             friendList.innerHTML = '';
 
             friends.forEach(friend => {
-                const friendElement = document.createElement('div');
-                friendElement.className = 'friend-item';
-                friendElement.innerHTML = `
-                    <div class="friend-details">
-                        <span>${friend.name}</span>
-                        <span>(${friend.phone})</span>
-                        <span class="payment-status status-${friend.status}">
-                            ${friend.status.charAt(0).toUpperCase() + friend.status.slice(1)}
-                        </span>
-                    </div>
+                const friendItem = document.createElement('div');
+                friendItem.className = 'friend-item';
+                friendItem.innerHTML = `
                     <div>
-                        <span>₹${friend.amount.toFixed(2)}</span>
-                        ${friend.status === 'pending' ? `
-                            <button onclick="requestPayment('${friend.id}')">Request</button>
-                            <button onclick="markAsPaid('${friend.id}')">Mark Paid</button>
-                        ` : ''}
+                        ${friend.name} (${friend.phone})
                     </div>
+                    <span>₹${friend.amount.toFixed(2)}</span>
                 `;
-                friendList.appendChild(friendElement);
+                friendList.appendChild(friendItem);
             });
         }
 
-        function requestPayment(friendId) {
-            const friend = friends.find(f => f.id.toString() === friendId);
-            if (!friend) return;
-
-            // Create payment request message
-            const message = `Please pay ₹${friend.amount.toFixed(2)} for ${pendingExpense.note}`;
-            
-            // Open WhatsApp with pre-filled message
-            const whatsappUrl = `https://wa.me/91${friend.phone}?text=${encodeURIComponent(message)}`;
-            window.open(whatsappUrl, '_blank');
-        }
-
-        function markAsPaid(friendId) {
-            const friend = friends.find(f => f.id.toString() === friendId);
-            if (!friend) return;
-
-            friend.status = 'paid';
-            updateFriendList();
-            
-            // Update expense in storage
-            if (currentExpenseId) {
-                const expense = expenses.find(e => e.id === currentExpenseId);
-                if (expense) {
-                    expense.splits = friends;
-                    localStorage.setItem('expenses', JSON.stringify(expenses));
-                }
-            }
-        }
-
-        // Modify initiatePayment to show split section
-        function initiatePayment() {
-            const amount = document.getElementById('amount').value;
-            const note = document.getElementById('note').value;
-            const paidBy = document.getElementById('paidBy').value;
-            const category = document.getElementById('category').value;
-
-            if (!amount || !note || !paidBy) {
-                alert('Please fill in all fields');
-                return;
-            }
-
-            pendingExpense = {
-                amount: parseFloat(amount),
-                note,
-                paidBy,
-                category
-            };
-
-            // Show split section first
-            document.getElementById('splitSection').style.display = 'block';
-            updateSplitCalculation();
-        }
-
-        // Modify handlePaymentInitiated to include split information
-        function handlePaymentInitiated() {
-            document.getElementById('upiPaymentForm').style.display = 'none';
-            document.getElementById('paymentAlert').style.display = 'block';
-
-            setTimeout(() => {
-                const expense = {
-                    ...pendingExpense,
-                    id: Date.now(),
-                    date: new Date().toLocaleDateString(),
-                    status: 'Paid',
-                    splits: friends // Save split information
-                };
-
-                currentExpenseId = expense.id;
-                expenses.unshift(expense);
-                localStorage.setItem('expenses', JSON.stringify(expenses));
-                
-                updateExpenseList();
-                clearForm();
-                document.getElementById('paymentAlert').style.display = 'none';
-                document.getElementById('overlay').style.display = 'none';
-                document.getElementById('splitSection').style.display = 'none';
-                pendingExpense = null;
-                friends = [];
-            }, 3000);
-        }
-
-        // Modify updateExpenseList to show split details
         function updateExpenseList() {
             const expenseList = document.getElementById('expenseList');
             expenseList.innerHTML = '';
 
             expenses.forEach(expense => {
-                const expenseElement = document.createElement('div');
-                expenseElement.className = 'expense-item';
-                
-                let splitStatus = '';
-                if (expense.splits && expense.splits.length > 0) {
-                    const paidCount = expense.splits.filter(f => f.status === 'paid').length;
-                    splitStatus = `<div class="split-status">
-                        Split: ${paidCount}/${expense.splits.length} paid
-                    </div>`;
-                }
-
-                expenseElement.innerHTML = `
+                const expenseItem = document.createElement('div');
+                expenseItem.className = 'expense-item';
+                expenseItem.innerHTML = `
                     <div class="expense-details">
                         <span class="expense-note">${expense.note}</span>
                         <span class="expense-meta">Paid by ${expense.paidBy} on ${expense.date}</span>
-                        ${splitStatus}
+                        <button class="split-details-btn" onclick="viewSplitDetails(${expense.id})">Splitted To</button>
                     </div>
                     <span class="category-tag">${expense.category}</span>
                     <span class="expense-amount">₹${expense.amount.toFixed(2)}</span>
                     <button class="delete-btn" onclick="deleteExpense(${expense.id})">Delete</button>
                 `;
-                expenseList.appendChild(expenseElement);
+                expenseList.appendChild(expenseItem);
             });
-
             updateTotal();
         }
 
+        function viewSplitDetails(expenseId) {
+            const expense = expenses.find(exp => exp.id === expenseId);
+            if (expense) {
+                alert(`Splitted among:
+${expense.splits.map(friend => `${friend.name} (${friend.amount.toFixed(2)})`).join('\n')}`);
+            }
+        }
 
-        
+        function updateTotal() {
+            const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+            document.getElementById('totalAmount').textContent = `₹${total.toFixed(2)}`;
+        }
+
+        function deleteExpense(id) {
+            expenses = expenses.filter(exp => exp.id !== id);
+            localStorage.setItem('expenses', JSON.stringify(expenses));
+            updateExpenseList();
+        }
+
+        // Initialize data
+        updateExpenseList();
+        updateFriendList();
     </script>
 </body>
 </html>
